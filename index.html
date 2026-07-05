@@ -305,16 +305,6 @@
       <p id="profile-job" class="job-title"></p>
       <p id="profile-company" class="company"></p>
       
-      <div class="meta-row">
-        <div class="scanned-badge">
-          <svg class="icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><path d="M4 4h6v6H4V4zm2 2v2h2V6H6zm-2 8h6v6H4v-6zm2 2v2h2v-2H6zm8-12h6v6h-6V4zm2 2v2h2V6h-2zm-2 8h2v2h-2v-2zm4 0h2v2h-2v-2zm-2 2h2v2h-2v-2zm2 2h2v2h-2v-2zm-4 0h2v2h-2v-2zm2-2h2v2h-2v-2z" fill="currentColor"/></svg>
-          Scanned via QR Code
-        </div>
-        <div class="date-text">
-          <svg class="icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 002 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" fill="currentColor"/></svg>
-          <span id="current-date"></span>
-        </div>
-      </div>
       
       <div id="about-me-section" class="about-me-section">
         <div class="about-me-title">About Me</div>
@@ -335,12 +325,7 @@
     const SUPABASE_URL = 'https://awkreadldqmidcrrqukm.supabase.co';
     const ANON_KEY = 'sb_publishable_MluMrwkWs5-YedITa6ggNw_imK2nv8z';
     
-    // Set current date
-    const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
-    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
-    const dateStr = new Date().toLocaleDateString('en-GB', dateOptions);
-    const timeStr = new Date().toLocaleTimeString('en-US', timeOptions);
-    document.getElementById('current-date').innerText = `${dateStr} ${timeStr}`;
+
 
     let profileId = null;
 
