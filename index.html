@@ -436,7 +436,7 @@
         const titleDiv = document.createElement('div');
         titleDiv.className = 'about-me-title';
         titleDiv.innerText = 'Social Links';
-        contactList.appendChild(titleDiv);
+        contactList.parentNode.insertBefore(titleDiv, contactList);
       }
       
       // Email
