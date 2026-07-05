@@ -476,9 +476,67 @@
         if (!link.value || !link.platform) return;
         
         let displayPlatform = link.platform.charAt(0).toUpperCase() + link.platform.slice(1);
-        let href = link.value;
-        if (!href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
-            href = `https://${href}`; // simple fallback
+        let val = link.value.trim();
+        let lowerPlatform = link.platform.toLowerCase().trim();
+        let href = val;
+
+        switch (lowerPlatform) {
+          case 'email': case 'work': case 'mail':
+            href = `mailto:${val}`;
+            break;
+          case 'phone': case 'mobile': case 'cell':
+            href = `tel:${val}`;
+            break;
+          case 'whatsapp':
+            const digits = val.replace(/\D/g, '');
+            href = `https://wa.me/${digits}`;
+            break;
+          case 'linkedin':
+            if (!val.includes('linkedin.com')) href = `https://linkedin.com/in/${val}`;
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          case 'github':
+            if (!val.includes('github.com')) href = `https://github.com/${val}`;
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          case 'twitter': case 'x':
+            if (!val.includes('x.com') && !val.includes('twitter.com')) href = `https://x.com/${val}`;
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          case 'instagram':
+            if (!val.includes('instagram.com')) href = `https://instagram.com/${val}`;
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          case 'facebook':
+            if (!val.includes('facebook.com')) href = `https://facebook.com/${val}`;
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          case 'telegram':
+            const tUser = val.startsWith('@') ? val.substring(1) : val;
+            href = `https://t.me/${tUser}`;
+            break;
+          case 'youtube':
+            if (!val.includes('youtube.com') && !val.includes('youtu.be')) href = `https://youtube.com/${val}`;
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          case 'tiktok':
+            if (!val.includes('tiktok.com')) {
+              const u = val.startsWith('@') ? val : `@${val}`;
+              href = `https://tiktok.com/${u}`;
+            }
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          case 'behance':
+            if (!val.includes('behance.net')) href = `https://behance.net/${val}`;
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          case 'dribbble':
+            if (!val.includes('dribbble.com')) href = `https://dribbble.com/${val}`;
+            else if (!val.startsWith('http')) href = `https://${val}`;
+            break;
+          default:
+            if (!val.startsWith('http')) href = `https://${val}`;
+            break;
         }
         
         contactList.appendChild(createContactItem(
