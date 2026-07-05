@@ -152,6 +152,85 @@
       color: var(--text-sub);
       font-weight: 500;
     }
+
+    .about-me-section {
+      margin-bottom: 24px;
+      display: none;
+    }
+    
+    .about-me-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+    }
+
+    .collapsible-container {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    
+    .collapsible-header {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+    
+    .collapsible-icon {
+      width: 20px;
+      height: 20px;
+      fill: var(--text-sub);
+      transition: transform 0.3s ease;
+    }
+    
+    .collapsible-content {
+      padding: 0 16px 16px 16px;
+      display: none;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+    }
+
+    .collapsible-container.open .collapsible-content {
+      display: block;
+    }
+
+    .collapsible-container.open .collapsible-icon {
+      transform: rotate(180deg);
+    }
+
+    .chip-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .chip.blue {
+      background-color: rgba(29, 122, 242, 0.1);
+      border: 1px solid rgba(29, 122, 242, 0.3);
+      color: #1d7af2;
+    }
+    
+    .chip.purple {
+      background-color: rgba(224, 64, 251, 0.1);
+      border: 1px solid rgba(224, 64, 251, 0.3);
+      color: #e040fb;
+    }
     
     .floating-btn-container {
       position: fixed;
@@ -218,6 +297,11 @@
           <svg class="icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 002 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" fill="currentColor"/></svg>
           <span id="current-date"></span>
         </div>
+      </div>
+      
+      <div id="about-me-section" class="about-me-section">
+        <div class="about-me-title">About Me</div>
+        <div id="about-me-content"></div>
       </div>
       
       <div id="contact-list" class="contact-list">
@@ -300,6 +384,37 @@
 
       const meta = profile.metadata || {};
       const contactList = document.getElementById('contact-list');
+      
+      // About Me Section
+      const aboutMeContent = document.getElementById('about-me-content');
+      let hasAboutMe = false;
+
+      if (profile.bio) {
+        hasAboutMe = true;
+        aboutMeContent.appendChild(createCollapsible('Professional Bio', escapeHtml(profile.bio).replace(/\n/g, '<br>')));
+      }
+      
+      if (profile.what_im_looking_for) {
+        const items = profile.what_im_looking_for.split(',').map(s => s.trim()).filter(s => s);
+        if (items.length > 0) {
+          hasAboutMe = true;
+          aboutMeContent.appendChild(createCollapsibleChips("What I'm Looking For", items, 'blue'));
+        }
+      }
+      
+      let tags = [];
+      if (profile.industries) tags = tags.concat(profile.industries);
+      if (profile.interests) tags = tags.concat(profile.interests);
+      tags = [...new Set(tags)];
+      
+      if (tags.length > 0) {
+        hasAboutMe = true;
+        aboutMeContent.appendChild(createCollapsibleChips("Industries & Interests", tags, 'purple'));
+      }
+      
+      if (hasAboutMe) {
+        document.getElementById('about-me-section').style.display = 'block';
+      }
       
       // Email from profile or metadata
       const email = profile.email || meta.email;
@@ -461,6 +576,37 @@
         }
       }, 2500);
     });
+
+    function escapeHtml(unsafe) {
+      return (unsafe || "").toString()
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+    }
+
+    function createCollapsible(title, contentHTML) {
+      const container = document.createElement('div');
+      container.className = 'collapsible-container';
+      container.innerHTML = `
+        <div class="collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+          <span>${title}</span>
+          <svg class="collapsible-icon" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        </div>
+        <div class="collapsible-content">
+          ${contentHTML}
+        </div>
+      `;
+      return container;
+    }
+    
+    function createCollapsibleChips(title, items, colorClass) {
+      const chipsHTML = `<div class="chip-container">
+        ${items.map(item => `<div class="chip ${colorClass}">${escapeHtml(item)}</div>`).join('')}
+      </div>`;
+      return createCollapsible(title, chipsHTML);
+    }
 
     // Start loading profile data immediately
     loadProfile();
