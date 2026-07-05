@@ -444,7 +444,7 @@
       socialLinks.forEach(link => {
         if (!link.value || !link.platform) return;
         
-        let displayPlatform = link.platform.charAt(0).toUpperCase() + link.platform.slice(1);
+        let displayPlatform = (link.label && link.label.trim()) ? link.label.trim() : (link.platform.charAt(0).toUpperCase() + link.platform.slice(1));
         let val = link.value.trim();
         let lowerPlatform = link.platform.toLowerCase().trim();
         let href = val;
