@@ -433,8 +433,28 @@
         document.getElementById('about-me-section').style.display = 'block';
       }
       
-      // Email from profile or metadata
+      // Gather contact info
       const email = profile.email || meta.email;
+      const phone = profile.phone || meta.phone;
+      const website = profile.website || meta.website;
+      const address = profile.address || meta.address;
+      
+      let socialLinks = [];
+      if (meta.socials) {
+        socialLinks = parseSocialLinks(meta.socials);
+      } else if (profile.social_links) {
+        socialLinks = parseSocialLinks(profile.social_links);
+      }
+
+      const hasContactInfo = email || phone || website || address || socialLinks.length > 0;
+      if (hasContactInfo) {
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'about-me-title';
+        titleDiv.innerText = 'Social Links';
+        contactList.appendChild(titleDiv);
+      }
+      
+      // Email
       if (email) {
         contactList.appendChild(createContactItem(
           `mailto:${email}`,
@@ -445,7 +465,6 @@
       }
 
       // Phone
-      const phone = profile.phone || meta.phone;
       if (phone) {
         contactList.appendChild(createContactItem(
           `tel:${phone}`,
@@ -456,7 +475,6 @@
       }
 
       // Website
-      const website = profile.website || meta.website;
       if (website) {
         const href = website.startsWith('http') ? website : `https://${website}`;
         contactList.appendChild(createContactItem(
@@ -469,7 +487,6 @@
       }
 
       // Address
-      const address = profile.address || meta.address;
       if (address) {
         const href = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
         contactList.appendChild(createContactItem(
@@ -479,14 +496,6 @@
           '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>',
           true
         ));
-      }
-
-      // Social Links
-      let socialLinks = [];
-      if (meta.socials) {
-        socialLinks = parseSocialLinks(meta.socials);
-      } else if (profile.social_links) {
-        socialLinks = parseSocialLinks(profile.social_links);
       }
 
       socialLinks.forEach(link => {
