@@ -44,6 +44,11 @@
     
     #profile-content {
       display: none; /* Hide until loaded */
+      max-width: 500px;
+      margin: 0 auto;
+      background-color: var(--bg-color);
+      min-height: 100vh;
+      position: relative;
     }
     
     .banner {
@@ -252,9 +257,12 @@
     .floating-btn-container {
       position: fixed;
       bottom: 0;
-      left: 0;
-      right: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 500px;
       padding: 20px;
+      box-sizing: border-box;
       background: linear-gradient(transparent, var(--bg-color) 20%, var(--bg-color));
       display: flex;
       justify-content: center;
