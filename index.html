@@ -433,7 +433,8 @@
       }
 
       if (profile.avatar_url) {
-        document.getElementById('banner-bg').style.backgroundImage = `url('${profile.avatar_url}')`;
+        const highResUrl = getHighResAvatarUrl(profile.avatar_url);
+        document.getElementById('banner-bg').style.backgroundImage = `url('${highResUrl}')`;
       }
 
       let meta = profile.metadata || {};
@@ -675,6 +676,15 @@
           }));
       }
       return [];
+    }
+
+    function getHighResAvatarUrl(url) {
+      if (!url) return '';
+      // If it's a Google User Content avatar, upgrade thumbnail size to high-res (1024px)
+      if (url.includes('googleusercontent.com')) {
+        return url.replace(/=s\d+(-c)?/g, '=s1024');
+      }
+      return url;
     }
 
     function getPlatformIconPath(platform) {
