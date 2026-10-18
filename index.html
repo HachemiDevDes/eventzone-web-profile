@@ -270,49 +270,45 @@
       z-index: 100;
     }
     
-    .save-btn {
-      flex: 1;
-      background-color: var(--accent-blue);
-      color: white;
-      text-decoration: none;
-      padding: 14px 12px;
-      text-align: center;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 15px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background 0.2s;
-    }
-
-    .save-btn:hover {
-      background-color: #1664c7;
-    }
-
-    .app-btn {
-      flex: 1;
-      background-color: rgba(255, 255, 255, 0.08);
+    .save-contact-action-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #1d7af2 0%, #1565c0 100%);
+      color: #ffffff;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      color: white;
-      text-decoration: none;
-      padding: 14px 12px;
+      padding: 16px 20px;
       text-align: center;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 15px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 16px;
+      font-family: inherit;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: background 0.2s;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(29, 122, 242, 0.35);
+      transition: all 0.2s ease;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .app-btn:hover {
-      background-color: rgba(255, 255, 255, 0.12);
+    .save-contact-action-btn:hover {
+      background: linear-gradient(135deg, #2583f7 0%, #176ecc 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 28px rgba(29, 122, 242, 0.45);
+    }
+
+    .save-contact-action-btn:active {
+      transform: scale(0.98);
+      box-shadow: 0 4px 14px rgba(29, 122, 242, 0.3);
+    }
+
+    .save-contact-action-btn .spinning {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
     }
     
     .icon {
@@ -345,7 +341,6 @@
       <p id="profile-job" class="job-title"></p>
       <p id="profile-company" class="company"></p>
       
-      
       <div id="about-me-section" class="about-me-section">
         <div class="about-me-title">About Me</div>
         <div id="about-me-content"></div>
@@ -357,14 +352,10 @@
     </div>
 
     <div class="floating-btn-container">
-      <div id="save-btn" class="save-btn">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
+      <button id="save-contact-btn" class="save-contact-action-btn" type="button">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
         <span>Save Contact</span>
-      </div>
-      <div id="app-btn" class="app-btn">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-        <span>Open in App</span>
-      </div>
+      </button>
     </div>
   </div>
 
@@ -763,39 +754,62 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    // Save Contact triggers direct vCard download
-    document.getElementById('save-btn').addEventListener('click', () => {
-      downloadVCard();
-    });
-
-    // Open in App triggers deep linking
-    const appBtn = document.getElementById('app-btn');
-    if (appBtn) {
-      appBtn.addEventListener('click', async () => {
+    // Save Contact: Copies deferred token and directs to Store / App
+    const saveContactBtn = document.getElementById('save-contact-btn');
+    if (saveContactBtn) {
+      saveContactBtn.addEventListener('click', async () => {
         if (!profileId) return;
-        
-        const appSchemeUrl = `eventzone://profile?id=${profileId}`;
-        const playStoreUrl = `https://play.google.com/store/apps/details?id=com.eventzone.app&referrer=profile_${profileId}`;
-        const appStoreUrl = `https://apps.apple.com/app/idYOUR_APP_ID`;
 
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) {
-          try {
-            await navigator.clipboard.writeText(`eventzone_profile_${profileId}`);
-          } catch (e) {
-            console.error("Clipboard copy failed", e);
+        const originalHtml = saveContactBtn.innerHTML;
+        saveContactBtn.innerHTML = `
+          <svg class="icon spinning" viewBox="0 0 24 24"><path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z"/></svg>
+          <span>Connecting to Eventzone...</span>
+        `;
+        saveContactBtn.style.pointerEvents = 'none';
+
+        // 1. Deferred linking: copy token to clipboard
+        const token = `eventzone_profile_${profileId}`;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(token);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = token;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
           }
+        } catch (e) {
+          console.warn('Clipboard write error:', e);
         }
 
+        // 2. Identify platform
+        const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+        const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+
+        const appSchemeUrl = `eventzone://profile?id=${profileId}`;
+        const playStoreUrl = `https://play.google.com/store/apps/details?id=com.eventzone.app&referrer=eventzone_profile_${profileId}`;
+        const appStoreUrl = `https://apps.apple.com/app/eventzone/idYOUR_APP_ID`;
+
+        const targetStoreUrl = isIOS ? appStoreUrl : playStoreUrl;
+
+        // 3. Try opening the app first if already installed
+        const start = Date.now();
         window.location.href = appSchemeUrl;
 
+        // 4. Fallback to store if the app did not open
         setTimeout(() => {
-          if (isIOS) {
-            window.location.href = appStoreUrl;
-          } else {
-            window.location.href = playStoreUrl;
+          if (document.hasFocus() || (Date.now() - start < 3500)) {
+            window.location.href = targetStoreUrl;
           }
-        }, 2500);
+          setTimeout(() => {
+            saveContactBtn.innerHTML = originalHtml;
+            saveContactBtn.style.pointerEvents = 'auto';
+          }, 2000);
+        }, 1500);
       });
     }
 
