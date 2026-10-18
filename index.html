@@ -261,26 +261,58 @@
       transform: translateX(-50%);
       width: 100%;
       max-width: 500px;
-      padding: 20px;
+      padding: 16px 20px;
       box-sizing: border-box;
-      background: linear-gradient(transparent, var(--bg-color) 20%, var(--bg-color));
+      background: linear-gradient(transparent, var(--bg-color) 25%, var(--bg-color));
       display: flex;
+      gap: 12px;
       justify-content: center;
       z-index: 100;
     }
     
     .save-btn {
+      flex: 1;
       background-color: var(--accent-blue);
       color: white;
       text-decoration: none;
-      padding: 16px 0;
-      width: 100%;
-      max-width: 320px;
+      padding: 14px 12px;
       text-align: center;
       border-radius: 12px;
       font-weight: 600;
-      font-size: 16px;
+      font-size: 15px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .save-btn:hover {
+      background-color: #1664c7;
+    }
+
+    .app-btn {
+      flex: 1;
+      background-color: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: white;
+      text-decoration: none;
+      padding: 14px 12px;
+      text-align: center;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .app-btn:hover {
+      background-color: rgba(255, 255, 255, 0.12);
     }
     
     .icon {
@@ -325,17 +357,42 @@
     </div>
 
     <div class="floating-btn-container">
-      <div id="save-btn" class="save-btn">Save Contact</div>
+      <div id="save-btn" class="save-btn">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
+        <span>Save Contact</span>
+      </div>
+      <div id="app-btn" class="app-btn">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+        <span>Open in App</span>
+      </div>
     </div>
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://awkreadldqmidcrrqukm.supabase.co';
-    const ANON_KEY = 'sb_publishable_MluMrwkWs5-YedITa6ggNw_imK2nv8z';
+    const PRIMARY_SUPABASE_URL = 'https://gknglowozpewwrtjumuc.supabase.co';
+    const PRIMARY_ANON_KEY = 'sb_publishable_0bdK2TAGnlyUKCnloX1Dug_Sg5uedKc';
+    const FALLBACK_SUPABASE_URL = 'https://awkreadldqmidcrrqukm.supabase.co';
+    const FALLBACK_ANON_KEY = 'sb_publishable_MluMrwkWs5-YedITa6ggNw_imK2nv8z';
     
-
-
+    let currentProfile = null;
     let profileId = null;
+
+    async function fetchFromSupabase(baseUrl, anonKey, id) {
+      try {
+        const response = await fetch(`${baseUrl}/rest/v1/profiles?id=eq.${id}&select=*`, {
+          headers: {
+            'apikey': anonKey,
+            'Authorization': `Bearer ${anonKey}`
+          }
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        return (data && data.length > 0) ? data[0] : null;
+      } catch (e) {
+        console.warn(`Fetch error from ${baseUrl}:`, e);
+        return null;
+      }
+    }
 
     async function loadProfile() {
       const params = new URLSearchParams(window.location.search);
@@ -347,24 +404,20 @@
       }
 
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profileId}&select=*`, {
-          headers: {
-            'apikey': ANON_KEY,
-            'Authorization': `Bearer ${ANON_KEY}`
-          }
-        });
+        // Try active production Supabase first
+        let profile = await fetchFromSupabase(PRIMARY_SUPABASE_URL, PRIMARY_ANON_KEY, profileId);
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile');
+        // Fallback to legacy database if not found
+        if (!profile) {
+          profile = await fetchFromSupabase(FALLBACK_SUPABASE_URL, FALLBACK_ANON_KEY, profileId);
         }
 
-        const data = await response.json();
-        if (!data || data.length === 0) {
+        if (!profile) {
           document.getElementById('loading').innerText = 'Profile not found';
           return;
         }
 
-        const profile = data[0];
+        currentProfile = profile;
         renderProfile(profile);
       } catch (error) {
         console.error(error);
@@ -426,12 +479,75 @@
         document.getElementById('about-me-section').style.display = 'block';
       }
       
-      // Gather contact info
-      const email = profile.email || meta.email;
-      const phone = profile.phone || meta.phone;
-      const website = profile.website || meta.website;
-      const address = profile.address || meta.address;
-      
+      // Direct contact channels (phone, whatsapp, email, website)
+      const renderedValues = new Set();
+      const directItems = [];
+
+      if (phone && phone.trim()) {
+        const cleanPhone = phone.trim();
+        renderedValues.add(cleanPhone);
+        directItems.push({
+          href: `tel:${cleanPhone}`,
+          value: cleanPhone,
+          label: 'Phone Number',
+          icon: getPlatformIconPath('phone'),
+          newTab: false
+        });
+
+        const digits = cleanPhone.replace(/\D/g, '');
+        if (digits.length >= 8) {
+          directItems.push({
+            href: `https://wa.me/${digits}`,
+            value: cleanPhone,
+            label: 'WhatsApp',
+            icon: getPlatformIconPath('whatsapp'),
+            newTab: true
+          });
+        }
+      }
+
+      if (email && email.trim()) {
+        const cleanEmail = email.trim();
+        renderedValues.add(cleanEmail.toLowerCase());
+        directItems.push({
+          href: `mailto:${cleanEmail}`,
+          value: cleanEmail,
+          label: 'Email Address',
+          icon: getPlatformIconPath('email'),
+          newTab: false
+        });
+      }
+
+      if (website && website.trim()) {
+        const cleanWeb = website.trim();
+        const webHref = cleanWeb.startsWith('http') ? cleanWeb : `https://${cleanWeb}`;
+        renderedValues.add(cleanWeb.toLowerCase());
+        directItems.push({
+          href: webHref,
+          value: cleanWeb,
+          label: 'Website',
+          icon: getPlatformIconPath('link'),
+          newTab: true
+        });
+      }
+
+      if (directItems.length > 0) {
+        const directTitle = document.createElement('div');
+        directTitle.className = 'about-me-title';
+        directTitle.innerText = 'Contact Information';
+        contactList.appendChild(directTitle);
+
+        directItems.forEach(item => {
+          contactList.appendChild(createContactItem(
+            item.href,
+            item.value,
+            item.label,
+            item.icon,
+            item.newTab
+          ));
+        });
+      }
+
       let socialLinks = [];
       if (meta.socials) {
         socialLinks = parseSocialLinks(meta.socials);
@@ -439,17 +555,21 @@
         socialLinks = parseSocialLinks(profile.social_links);
       }
 
-      const hasContactInfo = socialLinks.length > 0;
-      if (hasContactInfo) {
+      const filteredSocials = socialLinks.filter(link => {
+        if (!link.value || !link.platform) return false;
+        const val = link.value.trim().toLowerCase();
+        return !renderedValues.has(val);
+      });
+
+      if (filteredSocials.length > 0) {
         const titleDiv = document.createElement('div');
         titleDiv.className = 'about-me-title';
+        titleDiv.style.marginTop = '24px';
         titleDiv.innerText = 'Social Links';
-        contactList.parentNode.insertBefore(titleDiv, contactList);
+        contactList.appendChild(titleDiv);
       }
-      
 
-
-      socialLinks.forEach(link => {
+      filteredSocials.forEach(link => {
         if (!link.value || !link.platform) return;
         
         let displayPlatform = (link.label && link.label.trim()) ? link.label.trim() : (link.platform.charAt(0).toUpperCase() + link.platform.slice(1));
@@ -589,36 +709,74 @@
       return a;
     }
 
-    // Deferred deep linking logic
-    document.getElementById('save-btn').addEventListener('click', async () => {
-      if (!profileId) return;
-      
-      const appSchemeUrl = `eventzone://profile?id=${profileId}`;
-      const playStoreUrl = `https://play.google.com/store/apps/details?id=com.example.eventzone_app&referrer=profile_${profileId}`;
-      const appStoreUrl = `https://apps.apple.com/app/idYOUR_APP_ID`; // To be replaced
+    // vCard contact card generator & downloader
+    function downloadVCard() {
+      if (!currentProfile) return;
+      const name = (currentProfile.full_name || 'Contact').trim();
+      const org = (currentProfile.company_name || '').trim();
+      const title = (currentProfile.job_title || '').trim();
+      const meta = currentProfile.metadata || {};
+      const email = (currentProfile.email || meta.email || '').trim();
+      const phone = (currentProfile.phone || meta.phone || '').trim();
+      const website = (currentProfile.website || meta.website || '').trim();
+      const bio = (currentProfile.bio || '').trim();
 
-      // Fallback logic for iOS deferred linking: copy to clipboard
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      if (isIOS) {
-        try {
-          await navigator.clipboard.writeText(`eventzone_profile_${profileId}`);
-        } catch (e) {
-          console.error("Clipboard copy failed", e);
-        }
-      }
+      let vcard = 'BEGIN:VCARD\r\nVERSION:3.0\r\n';
+      vcard += `FN:${name}\r\n`;
+      if (title) vcard += `TITLE:${title}\r\n`;
+      if (org) vcard += `ORG:${org}\r\n`;
+      if (email) vcard += `EMAIL;TYPE=INTERNET,WORK:${email}\r\n`;
+      if (phone) vcard += `TEL;TYPE=CELL,VOICE:${phone}\r\n`;
+      if (website) vcard += `URL:${website}\r\n`;
+      if (bio) vcard += `NOTE:${bio.replace(/\r?\n/g, '\\n')}\r\n`;
+      vcard += 'END:VCARD\r\n';
 
-      // Try App Scheme First
-      window.location.href = appSchemeUrl;
+      const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, '_')}.vcf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
 
-      // Fallback to Store after a short delay
-      setTimeout(() => {
-        if (isIOS) {
-          window.location.href = appStoreUrl;
-        } else {
-          window.location.href = playStoreUrl;
-        }
-      }, 2500);
+    // Save Contact triggers direct vCard download
+    document.getElementById('save-btn').addEventListener('click', () => {
+      downloadVCard();
     });
+
+    // Open in App triggers deep linking
+    const appBtn = document.getElementById('app-btn');
+    if (appBtn) {
+      appBtn.addEventListener('click', async () => {
+        if (!profileId) return;
+        
+        const appSchemeUrl = `eventzone://profile?id=${profileId}`;
+        const playStoreUrl = `https://play.google.com/store/apps/details?id=com.eventzone.app&referrer=profile_${profileId}`;
+        const appStoreUrl = `https://apps.apple.com/app/idYOUR_APP_ID`;
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+          try {
+            await navigator.clipboard.writeText(`eventzone_profile_${profileId}`);
+          } catch (e) {
+            console.error("Clipboard copy failed", e);
+          }
+        }
+
+        window.location.href = appSchemeUrl;
+
+        setTimeout(() => {
+          if (isIOS) {
+            window.location.href = appStoreUrl;
+          } else {
+            window.location.href = playStoreUrl;
+          }
+        }, 2500);
+      });
+    }
 
     function escapeHtml(unsafe) {
       return (unsafe || "").toString()
